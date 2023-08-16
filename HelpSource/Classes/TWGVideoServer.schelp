@@ -1,0 +1,108 @@
+TITLE:: TWGVideoServer
+summary:: Server-side media playback engine for the TWGVideo system.
+categories:: TWGVideo
+related:: Classes/TWGVideoServerWindow, Classes/TWGVideoClient, Classes/TWGVideoControl, Guides/TWGVideo Setup and API
+
+DESCRIPTION::
+TWGVideo is a library of classes developed to facilitate the control and synchronization of five audiovisual channels (buses) across a network with VCR-style functionalilty.
+
+link::Classes/TWGVideoServer:: is the server-side module. It accesses a media directory runs audio playback on the local SuperCollider server, sending OSC messages to an external application for synchronized video playback. The server is controllable via OSC, receiving and returning messages to any number of connected link::Classes/TWGVideoClient:: objects on the network.
+
+CLASSMETHODS::
+
+METHOD:: new
+Create a new link::Classes/TWGVideoServer:: object and boot the SuperCollider server. The audio server will try to boot with the audio device "ASIO : Dante Virtual Soundcard (x64)" if available. Upon successful initiation, a link::Classes/TWGVideoServerWindow:: will open.
+
+ARGUMENT:: showspath
+A string indicating the path to the media directory to be used.
+Audio files should be saved with a two-digit numeric prefix ("01 media1.wav", "02 media2.wav", etc.) under the directory "<showspath>/<showname>/Media/Audio/" and video files to the corresponding "Video" folder.
+
+ARGUMENT:: legacy
+Set the legacy flag to link::Classes/True:: to send OSC messages in the legacy format to the stage manager computer (link::Classes/NetAddr:: stored in the strong::erin:: variable).
+
+INSTANCEMETHODS::
+
+METHOD:: soundfiles
+
+returns:: An link::Classes/Event:: containing an link::Classes/Array:: for each sound file loaded to the server with [<index> (link::Classes/Integer::), <name> (link::Classes/Symbol::), <duration> (link::Classes/Float::)]
+
+
+METHOD:: connectedClients
+
+returns:: An link::Classes/Array:: of link::Classes/NetAddr:: belonging to all link::Classes/TWGVideoClient:: objects on the network that have pinged the server since it has been loaded.
+
+METHOD:: connectedClientNames
+
+returns:: An link::Classes/Array:: containing the names of all connected clients. (The list of names displays on the bottom right corner of the GUI).
+
+METHOD:: video
+
+returns:: The link::Classes/NetAddr:: of the application running video playback. Default value is code::NetAddr("localhost", 10000)::.
+
+METHOD:: loaded
+
+returns:: link::Classes/True:: when the audio files for the selected show have been loaded. (Displays in GUI.)
+
+METHOD:: start_audio
+
+Begin running synths on buses and ear routing matrix. (Method called by clicking "Start Audio" in the GUI.)
+
+METHOD:: stop_audio
+
+Stop running synths on buses and ear routing matrix. (Method called by clicking "Stop Audio" in the GUI.)
+
+METHOD:: erin
+
+returns:: The link::Classes/NetAddr:: of the stage manager laptop running the Python control application (legacy mode only). Default value is code::NetAddr("192.168.2.2", 7400)::.
+
+METHOD:: legacy_mode
+
+returns:: link::Classes/True:: if legacy mode is active. In legacy mode, transport strong::state:: is always 1 (playing) and pause, rewind and fastforward are executed by directly modifying the strong::speed:: variable. When legacy mode is off, messages to strong::erin:: are suppressed.
+
+METHOD:: show_path
+
+returns:: a link::Classes/PathName:: to the selected show media directory. (Current show is selected via the GUI.)
+
+METHOD:: win
+
+returns:: The associated link::Classes/TWGVideoServerWindow::.
+
+METHOD:: preset
+
+returns:: Current video routing preset.
+
+METHOD:: matrix_arr
+
+returns:: An link::Classes/Array:: of arrays containing on/off state for each bus and audio routing channel. Updates to checkboxes on the GUI, which also can be used to set matrix routing.
+
+METHOD:: businfo
+
+returns:: An link::Classes/Array:: of An link::Classes/Event::s containing current bus state information (strong::media::, strong::position::, strong::speed::, strong::transport::, strong::db::). This information is automatically updated to any connected clients via OSC.
+
+METHOD:: running
+
+returns:: link::Classes/True:: if audio playback engine is running. (Use GUI or strong::start_audio:: and strong::stop_audio:: methods to change.)
+
+METHOD:: buses
+
+returns:: An link::Classes/Array:: containing a link::Classes/Synth:: for each of the five buses.
+
+METHOD:: ffspeed
+
+returns:: Global fastforward and rewind speed. Default value is 8.
+
+METHOD:: load_show
+
+Load audio files for currently selected show. (Accessed via GUI "Load Show" button).
+
+
+EXAMPLES::
+
+code::
+// Initiate the video server on the server computer using the following line.
+~vidserver = TWGVideoServer();
+
+//Quit server.
+~vidserver.quit;
+)
+::
