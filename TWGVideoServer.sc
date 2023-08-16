@@ -20,13 +20,18 @@ TWGVideoServer {
         var ramp = \ramp.kr(0);
         var amp = \amp.kr(1);
         var rate = VarLag.kr(\rate.kr(1), ramp, warp: \curve.kr(1));
+        var start = \start.kr(0);
+        var end = \end.kr(1);
+        var loop = \loop.kr(0);
         // make fast forward less grating on ears
         var lpf_freq = rate.abs.linlin(1, 3, 20000, 5000);
         var amp_adjust = rate.abs.linlin(1, 3, 0, -12).dbamp * InRange.kr(state, 1, 1);
         var sig, playhead, isPlaying;
         // modify playback rate for current play state
         var cur_rate = Select.kr(state + 1, [rate.abs.neg * ffspeed, DC.kr(0), rate, rate.abs * ffspeed]);
-        #sig, playhead, isPlaying = SuperPlayBufX.arDetails(2, buf, cur_rate * on, cueTrig, cuePos, loop: 0);
+        start = (start * BufFrames.kr(buf)) -1; //move loop points one sample outside as a precaution
+        end = (end * BufFrames.kr(buf)) +1;
+        #sig, playhead, isPlaying = SuperPlayBufX.arDetails(2, buf, cur_rate * on, cueTrig, cuePos, start, end, loop);
         sig = sig * on;
         SendReply.ar(Impulse.ar(60) * on, '/playhead', playhead.asArray, index);
         SendReply.ar(Impulse.ar(60) * on, '/rate', rate, index);
@@ -70,7 +75,6 @@ TWGVideoServer {
     OSCdef(\server_quit, { |msg, time, addr, recvPort|
       var name = msg[1];
       var clientIndex = connectedClientNames.indexOf(name);
-      //[name, clientIndex].postln;
       if (clientIndex.notNil) {
         connectedClients.removeAt(clientIndex);
         connectedClientNames.removeAt(clientIndex);
@@ -146,7 +150,10 @@ TWGVideoServer {
         position: 0,
         speed: 1,
         transport: 1,
-        db: 0
+        db: 0,
+        loop: 0,
+        loopstart: 0,
+        loopend: 100
       )
     };
 
@@ -202,13 +209,14 @@ TWGVideoServer {
     }, '/rate');
 
     OSCdef(\fromsm, { |msg|
-      var media, pos, speed, zoom, state, db, blank;
+      var media, pos, speed, zoom, state, db, loop;
       var rate, ramp, curve;
+      var loopOn, loopStart, loopEnd;
       var osc_buses = msg[1..35].clump(7);
       var matrix = msg[41];
 
       osc_buses.do { |bus, i|
-        # media, pos, speed, zoom, state, db, blank = bus;
+        # media, pos, speed, zoom, state, db, loop = bus;
         if (media != 'n' && media.notNil) {
           media = media.asInteger;
           businfo[i][\media] = media;
@@ -235,6 +243,26 @@ TWGVideoServer {
           buses[i].set(\curve, curve ? 1, \ramp, ramp, \rate, rate);
           video.sendMsg(("rate_" ++ (65 + i).asAscii).asSymbol, rate);
         };
+        if (loop != 'n' && loop.notNil) {
+          # loopOn, loopStart, loopEnd = loop.asString.split($ ).asFloat;
+          if (loopOn.asBoolean.not) {
+            buses[i].set(\start, 0, \end, 1, \loop, 0); // if looping is off, move start and end to beginning and end
+          } {
+            var curPos =  businfo[i][\position];
+            if ( (loopStart > curPos) || (loopEnd < curPos) ) {
+              var buf = buses[i].buffer;
+              buses[i].set(\cuePos, buf.atSec(loopStart.asFloat * 0.01 * buf.duration), \cueTrig, 1)
+            }; // move playhead to loop start if not already in loop area
+            buses[i].set(\start, loopStart * 0.01 ? 0, \end, loopEnd * 0.01 ? 1, \loop, 1);
+          };
+
+          businfo[i][\loop] = loopOn.asBoolean;
+          businfo[i][\loopstart] = loopStart;
+          businfo[i][\loopend] = loopEnd;
+
+          connectedClients.do(_.sendMsg('/fromvideo', \loop, i, businfo[i][\loop], businfo[i][\loopstart], businfo[i][\loopend]));
+          //here update businfo and send /fromvideo message to connectedClients
+        };
         if (zoom != 'n' && zoom.notNil) {
           if (i < 3) {
             video.sendMsg(("zoom_" ++ (65 + i).asAscii).asSymbol, zoom);
@@ -250,7 +278,6 @@ TWGVideoServer {
             video.sendMsg(\preset, preset);
             connectedClients.do(_.sendMsg('/fromvideo', \preset, preset));
           };
-
           if (i == 4) {
             video.sendMsg(\preset_trigger, 1);
           };
@@ -382,10 +409,10 @@ TWGVideoServer {
         addr.sendMsg('/fromvideo', \speed, i, businfo[i][\speed]);
         addr.sendMsg('/fromvideo', \db, i, businfo[i][\db]);
         addr.sendMsg('/fromvideo', \transport, i, businfo[i][\transport]);
+        addr.sendMsg('/fromvideo', \loop, i, businfo[i][\loop], businfo[i][\loopstart], businfo[i][\loopend]);
       });
 
       msg = ['/fromvideo', \showinfo, show_path.folderName] ++ soundfiles.size.collect({|i| soundfiles[i+1][\name]});
-			msg.postln;
       addr.sendMsg(*msg);
 
       addr.sendMsg('/fromvideo', \preset, preset);
