@@ -17,24 +17,32 @@ TWGVideoServer {
         var buf = \buf.kr(0);
         var cuePos = \cuePos.krBig(0);
         var cueTrig = \cueTrig.tr(0);
+        var rate_in = \rate.kr(1);
         var ramp = \ramp.kr(0);
+        var curve = \curve.kr(1);
         var amp = \amp.kr(1);
-        var rate = VarLag.kr(\rate.kr(1), ramp, warp: \curve.kr(1));
+        var rate = VarLag.kr(rate_in, ramp, warp: curve);
         var start = \start.kr(0);
         var end = \end.kr(1);
         var loop = \loop.kr(0);
+        var pitch = \pitch.kr(0);
         // make fast forward less grating on ears
         var lpf_freq = rate.abs.linlin(1, 3, 20000, 5000);
         var amp_adjust = rate.abs.linlin(1, 3, 0, -12).dbamp * InRange.kr(state, 1, 1);
         var sig, playhead, isPlaying;
         // modify playback rate for current play state
         var cur_rate = Select.kr(state + 1, [rate.abs.neg * ffspeed, DC.kr(0), rate, rate.abs * ffspeed]);
+        var paused = InRange.kr(state, 0, 0);
+        var is_ramping = Trig.kr(Changed.kr(ramp + rate_in), ramp);
+        var replyTrig;
         start = (start * BufFrames.kr(buf)) -1; //move loop points one sample outside as a precaution
         end = (end * BufFrames.kr(buf)) +1;
         #sig, playhead, isPlaying = SuperPlayBufX.arDetails(2, buf, cur_rate * on, cueTrig, cuePos, start, end, loop);
+        sig = if (pitch, PitchShift.ar(sig, pitchRatio: 1/rate.abs), sig);
         sig = sig * on;
-        SendReply.ar(Impulse.ar(60) * on, '/playhead', playhead.asArray, index);
-        SendReply.ar(Impulse.ar(60) * on, '/rate', rate, index);
+        replyTrig = if (paused, Changed.ar(playhead.asArray[0]), Impulse.ar(60) * on);
+        SendReply.ar(replyTrig, '/playhead', playhead.asArray, index); // if paused, update playhead only when changed
+        SendReply.kr(Impulse.kr(10) * on * is_ramping + (Changed.kr(rate) * (1 - is_ramping)), '/rate', rate, index); // update rate only if the input rate changes or if in the middle of a ramp
         Out.ar(out, LeakDC.ar(LPF.ar(sig, lpf_freq)) * amp * amp_adjust);
       }).add;
     };
@@ -210,7 +218,7 @@ TWGVideoServer {
 
     OSCdef(\fromsm, { |msg|
       var media, pos, speed, zoom, state, db, loop;
-      var rate, ramp, curve;
+      var rate, ramp, curve, pitch;
       var loopOn, loopStart, loopEnd;
       var osc_buses = msg[1..35].clump(7);
       var matrix = msg[41];
@@ -239,8 +247,8 @@ TWGVideoServer {
           };
         };
         if (speed != 'n' && speed.notNil) {
-          # rate, ramp, curve = speed.asString.split($ ).asFloat;
-          buses[i].set(\curve, curve ? 1, \ramp, ramp, \rate, rate);
+          # rate, ramp, curve, pitch = speed.asString.split($ ).asFloat;
+          buses[i].set(\curve, curve ? 3, \ramp, ramp, \rate, rate, \pitch, pitch);
           video.sendMsg(("rate_" ++ (65 + i).asAscii).asSymbol, rate);
         };
         if (loop != 'n' && loop.notNil) {
