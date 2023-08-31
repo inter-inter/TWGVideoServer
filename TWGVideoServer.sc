@@ -1,5 +1,5 @@
 TWGVideoServer {
-  var <win, <video, <folder, <soundfiles, <loaded = false, <running = false, <legacy_mode = false, <>show_path, <out_buses, <matrix, <matrix_arr, <buses, <businfo, <>preset, <ffspeed;
+  var <win, <video, <nicodemus, <folder, <soundfiles, <loaded = false, <running = false, <legacy_mode = false, <>show_path, <out_buses, <matrix, <matrix_arr, <buses, <businfo, <>preset, <ffspeed;
   var <connectedClients, <connectedClientNames;
   var <erin; // legacy
 
@@ -63,6 +63,7 @@ TWGVideoServer {
     ffspeed = 8;
     preset = 1;
     video = NetAddr("localhost", 10000);
+	nicodemus = NetAddr("192.168.2.20", 10000);
     // legacy
     erin = NetAddr("192.168.2.2", 7400);
 
@@ -196,6 +197,7 @@ TWGVideoServer {
         businfo[index][\position] = pos;
         if (index < 3) {
           video.sendMsg(("pos_" ++ letter).asSymbol, pos);
+		  nicodemus.sendMsg(("pos_" ++ letter).asSymbol, pos);
         };
         connectedClients.do(_.sendMsg('/fromvideo', \pos, index, pos));
         // legacy
