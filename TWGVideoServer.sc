@@ -422,7 +422,9 @@ TWGVideoServer {
         addr.sendMsg('/fromvideo', \loop, i, businfo[i][\loop], businfo[i][\loopstart], businfo[i][\loopend]);
       });
 
-      msg = ['/fromvideo', \showinfo, show_path.folderName] ++ soundfiles.size.collect({|i| soundfiles[i+1][\name]});
+
+      msg = ['/fromvideo', \showinfo, show_path.folderName] ++ soundfiles.collect({|item, i| i.asString + item[\name]});
+      msg.debug("msg");
       addr.sendMsg(*msg);
 
       addr.sendMsg('/fromvideo', \preset, preset);
