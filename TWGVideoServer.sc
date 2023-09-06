@@ -158,7 +158,7 @@ TWGVideoServer {
         media: 0,
         position: 0,
         speed: 1,
-        transport: 1,
+        transport: 0,
         db: 0,
         loop: 0,
         loopstart: 0,
@@ -385,11 +385,11 @@ TWGVideoServer {
       s.sync;
       soundfiles = ();
       pathname.files.do { |pathname|
-        var filename = pathname.fileNameWithoutExtension;
-        var filenum = filename[0..3].asInteger;
-        if (filename.endsWith("_rev")) {
+        if (pathname.fileName == ".DS_Store") {
           // skip
         } {
+          var filename = pathname.fileNameWithoutExtension;
+          var filenum = filename[0..3].asInteger;
           filename.postln;
           soundfiles[filenum] = ();
           soundfiles[filenum][\name] = filename[3..];
