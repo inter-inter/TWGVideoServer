@@ -55,6 +55,10 @@ METHOD:: erin
 
 returns:: The link::Classes/NetAddr:: of the stage manager laptop running the Python control application (legacy mode only). Default value is code::NetAddr("192.168.2.2", 7400)::.
 
+METHOD:: rehcam
+
+returns:: The link::Classes/NetAddr:: of the computer running rehearsal camera recordings (for position timestamp). Default value is code::NetAddr("192.168.2.110", 10000)::.
+
 METHOD:: legacy_mode
 
 returns:: link::Classes/True:: if legacy mode is active. In legacy mode, transport strong::state:: is always 1 (playing) and pause, rewind and fastforward are executed by directly modifying the strong::speed:: variable. When legacy mode is off, messages to strong::erin:: are suppressed.
