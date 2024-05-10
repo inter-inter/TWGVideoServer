@@ -63,7 +63,7 @@ TWGVideoServer {
     ffspeed = 8;
     preset = 1;
     video = NetAddr("localhost", 10000);
-    rehcam = NetAddr("192.168.2.110", 10000);
+    rehcam = NetAddr("192.168.2.200", 10000);
     // legacy
     erin = NetAddr("192.168.2.2", 7400);
 
@@ -386,7 +386,7 @@ TWGVideoServer {
       s.sync;
       soundfiles = ();
       pathname.files.do { |pathname|
-        if (pathname.fileName == ".DS_Store") {
+        if (pathname.fileName == ".DS_Store" || pathname.fileName[(pathname.fileName.size-4)..] == ".asd") {
           // skip
         } {
           var filename = pathname.fileNameWithoutExtension;
@@ -414,7 +414,6 @@ TWGVideoServer {
     if (loaded) {
       var msg;
       msg = ['/fromvideo', \showinfo, show_path.folderName] ++ soundfiles.collect({|item, i| i.asString + item[\name]});
-      //msg.debug("msg");
       addr.sendMsg(*msg);
 
       businfo.do({ |bus, i|
