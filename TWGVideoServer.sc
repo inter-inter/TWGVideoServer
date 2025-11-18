@@ -95,7 +95,7 @@ TWGVideoServer {
 
     OSCdef(\timeline_query, {|msg, time, addr, recvPort|
       var data = ([[0, \blank, 5.0]] ++ soundfiles.collect({ |sf, index| [index, sf[\name].asSymbol, sf[\buf].duration] })).sort({ |arr1, arr2| arr1[0] < arr2[0] }).flat;
-      data.postln;
+      //data.postln;
       addr.sendMsg("/timeline_info", *data);
     }, "/timeline_query");
   }
@@ -198,7 +198,7 @@ TWGVideoServer {
         businfo[index][\position] = pos;
         //if (index < 3) {
 		video.sendMsg(("pos_" ++ letter).asSymbol, pos);
-		rehcam.sendMsg(("pos_" ++ letter).asSymbol, pos).postln;
+		rehcam.sendMsg(("pos_" ++ letter).asSymbol, pos);
         //};
         connectedClients.do(_.sendMsg('/fromvideo', \pos, index, pos));
         // legacy
@@ -234,7 +234,7 @@ TWGVideoServer {
           connectedClients.do(_.sendMsg('/fromvideo', \media, i, media));
           //if (i < 3) {
           video.sendMsg(("media_" ++ (65 + i).asAscii).asSymbol, media);
-		  rehcam.sendMsg(("media_" ++ (65 + i).asAscii).asSymbol, media);
+          rehcam.sendMsg(("media_" ++ (65 + i).asAscii).asSymbol, media);
           //};
           if (media == 0) {
             buses[i].set(\on, 0);
@@ -246,7 +246,10 @@ TWGVideoServer {
         };
         if (pos != 'n' && pos.notNil) {
           var buf = buses[i].buffer;
-          businfo[i][\position] = pos.asFloat;
+          if (businfo[i][\media] == 0) {
+            businfo[i][\position] = pos.asFloat.postln;
+            connectedClients.do(_.sendMsg('/fromvideo', \pos, i, pos.asFloat));
+          };
           if (buf.notNil) {
             buses[i].set(\cuePos, buf.atSec(pos.asFloat * 0.01 * buf.duration), \cueTrig, 1)
           };
@@ -254,7 +257,8 @@ TWGVideoServer {
         if (speed != 'n' && speed.notNil) {
           # rate, ramp, curve, pitch = speed.asString.split($ ).asFloat;
           if (businfo[i][\media] == 0) {
-            businfo[i][\speed] = rate.asFloat;
+            businfo[i][\speed] = rate.postln;
+            connectedClients.do(_.sendMsg('/fromvideo', \speed, i, rate));
           };
           buses[i].set(\curve, curve ? 3, \ramp, ramp, \rate, rate, \pitch, pitch);
           video.sendMsg(("rate_" ++ (65 + i).asAscii).asSymbol, rate);
