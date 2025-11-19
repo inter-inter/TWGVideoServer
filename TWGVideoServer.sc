@@ -247,7 +247,7 @@ TWGVideoServer {
         if (pos != 'n' && pos.notNil) {
           var buf = buses[i].buffer;
           if (businfo[i][\media] == 0) {
-            businfo[i][\position] = pos.asFloat.postln;
+            businfo[i][\position] = pos.asFloat;
             connectedClients.do(_.sendMsg('/fromvideo', \pos, i, pos.asFloat));
           };
           if (buf.notNil) {
@@ -257,7 +257,7 @@ TWGVideoServer {
         if (speed != 'n' && speed.notNil) {
           # rate, ramp, curve, pitch = speed.asString.split($ ).asFloat;
           if (businfo[i][\media] == 0) {
-            businfo[i][\speed] = rate.postln;
+            businfo[i][\speed] = rate;
             connectedClients.do(_.sendMsg('/fromvideo', \speed, i, rate));
           };
           buses[i].set(\curve, curve ? 3, \ramp, ramp, \rate, rate, \pitch, pitch);
